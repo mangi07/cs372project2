@@ -19,9 +19,9 @@ Note: functions documented in source, fileManager.c
 #ifndef FILEMANAGER_H
 #define FILEMANAGER_H
 
-char** listDir ();
+char* listDir ();
 
 
 
 
-#endif FILEMANAGER_H
+#endif

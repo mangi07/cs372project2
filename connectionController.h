@@ -40,5 +40,5 @@ Return: 0: invalid port number OR if valid,
 	conversion of portno to it's numeric equivalent.
 **********************************************************/
 
-#endif CONNECTIONCONTROLLER_H
+#endif
 

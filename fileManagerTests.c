@@ -7,10 +7,13 @@ Description: OSU Networking CS 372, Project 2
   fileManager.c unit tests
 ***********************************************************/
 
+#include "fileManager.h"
 
 
 int main() { 
 
+	char* dirListing = listDir(".");
+	//free 
 	return 0;
 
 }
