@@ -27,33 +27,59 @@ Return: Directory listing of working directory as pointer
 Caller is responsible for deallocating this array
 Note: This function calls itself recursively.
 **********************************************************/
-char* listDir (const char* path) {
+char* listDir (char* path) {
 	// get file paths here
 	// adapted from: http://stackoverflow.com/questions/4204666/how-to-list-files-in-a-directory-in-a-c-program
 	DIR *d;
 	struct dirent *dir;
+	char* listing = NULL;
+	
 	d = opendir(path);
 	if (d) {
 		while ((dir = readdir(d)) != NULL) {
-			if ( strcmp(dir->d_name,".")!=0 && 
-				  strcmp(dir->d_name,"..")!=0 ) {
-				char d_path[255]; // here I am using sprintf which is safer than strcat
-				sprintf(d_path, "%s/%s", path, dir->d_name);
-				if ( dir -> d_type == DT_DIR ) { // if it is a directory
-					listDir(d_path); // recall with the new path
-				} else { // we've reached a file name, so print it's entire path
-					// if listing starts with "./", remove it here...TODO:
-					
-					printf("%s\n", d_path);
-				}
-			}
+			
 		}
 		closedir(d);
+	} // TODO: else error
+	
+	
+	return listing;
+}
+
+char* _fileListing ( struct dirent *dir ) {
+	// create space to store dir listing
+	int size = strlen( dir->d_name ) * sizeof(char);
+	file_listing = malloc ( size );
+	
+	if ( strcmp(dir->d_name,".")!= 0 && 
+		  strcmp(dir->d_name,"..")!= 0 ) {
+		sprintf( file_listing, "%s", dir->d_name );
 	}
 	
-	// TODO: modify directory listings above to be collected into char*
-	char* listing = malloc ( 50 * sizeof(char) );
-	return listing;
+	while ( dir->d_type == DT_DIR ) {
+		// get new dir
+		DIR *d;
+		struct dirent *new_dir;
+		d = opendir(file_listing);
+		if (!d) {
+			perrror( "Fatal error opening directory" );
+			exit( -1 );
+		}
+		new_dir = readdir(d);
+		
+		// add to the path
+		char* new_dir_name = dir->d_name;
+		prev_listing = file_listing;
+		size = size + strlen(new_dir_name)*sizeof(char) + 1;
+		file_listing = malloc( size );
+		sprintf( file_listing, "%s/%s", file_listing, new_dir_name );
+		free( prev_listing );
+	}
+	// we've reached a file name
+	sprintf( "%s\n", listing );
+	
+	
+	return file_listing;
 }
 
 

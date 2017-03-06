@@ -19,7 +19,10 @@ Note: functions documented in source, fileManager.c
 #ifndef FILEMANAGER_H
 #define FILEMANAGER_H
 
-char* listDir ();
+#include <stdio.h>
+#include <stdlib.h>
+
+char* listDir (char* path);
 
 
 

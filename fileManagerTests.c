@@ -13,7 +13,9 @@ Description: OSU Networking CS 372, Project 2
 int main() { 
 
 	char* dirListing = listDir(".");
-	//free 
+	printf( "%s\n", dirListing );
+	free( dirListing );
+	
 	return 0;
 
 }
