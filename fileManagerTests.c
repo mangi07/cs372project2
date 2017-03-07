@@ -8,12 +8,15 @@ Description: OSU Networking CS 372, Project 2
 ***********************************************************/
 
 #include "fileManager.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 
 int main() { 
 
 	char* dirListing = listDir(".");
-	//free 
+	printf( "%s", dirListing );
+	free( dirListing ); 
 	return 0;
 
 }

@@ -21,42 +21,105 @@ Description: OSU Networking CS 372, Project 2
 #include <dirent.h>
 
 /**********************************************************
-Arguments: const char* path : the directory to list
+Linked List
+This represents a list of file paths
+**********************************************************/
+struct path_node {
+  char* d;
+  struct path_node* next;
+};
+
+struct path_node* _addLink (struct path_node* n, char* d_path );
+void _dirList (const char* path, struct path_node* n);
+char* _listToChar( struct path_node* n );
+
+/**********************************************************
+Parameters: const char* path : the directory to list
+		struct path_node* n : the linked list to contain
+		directory listing
 Return: Directory listing of working directory as pointer
   to multidimensional char array.
-Caller is responsible for deallocating this array
+Caller is responsible for deallocating the char* array returned
 Note: This function calls itself recursively.
+Note: This will not include empty directories.
 **********************************************************/
 char* listDir (const char* path) {
+	struct path_node* n = malloc( sizeof(struct path_node) );
+	n->d = "";
+	n->next = NULL;
+	struct path_node* list_root = n;
+	_dirList (path, n);
+	return _listToChar( list_root );
+}
+
+/**********************************************************
+Helper wrapped by listDir
+struct path_node* n must be initialized here
+**********************************************************/
+void _dirList (const char* path, struct path_node* n) {
 	// get file paths here
 	// adapted from: http://stackoverflow.com/questions/4204666/how-to-list-files-in-a-directory-in-a-c-program
 	DIR *d;
 	struct dirent *dir;
 	d = opendir(path);
+	
 	if (d) {
-		while ((dir = readdir(d)) != NULL) {
-			if ( strcmp(dir->d_name,".")!=0 && 
-				  strcmp(dir->d_name,"..")!=0 ) {
-				char d_path[255]; // here I am using sprintf which is safer than strcat
+		while ( (dir = readdir(d)) != NULL ) {
+			if ( strcmp(dir->d_name,".")!= 0 && 
+				  strcmp(dir->d_name,"..")!= 0 ) {
+				char d_path[4096]; // here I am using sprintf which is safer than strcat
 				sprintf(d_path, "%s/%s", path, dir->d_name);
 				if ( dir -> d_type == DT_DIR ) { // if it is a directory
-					listDir(d_path); // recall with the new path
-				} else { // we've reached a file name, so print it's entire path
-					// if listing starts with "./", remove it here...TODO:
-					
+					_dirList( d_path, n ); // recall with the new path
+				} else { // we've reached a file name, so add entire path
+					n = _addLink( n, d_path );
 					printf("%s\n", d_path);
 				}
 			}
 		}
 		closedir(d);
 	}
-	
-	// TODO: modify directory listings above to be collected into char*
-	char* listing = malloc ( 50 * sizeof(char) );
-	return listing;
 }
 
+/**********************************************************
+Parameters: struct path_node* n : the tail of a linked list
+		char* d_path : the full path to add
+Return: the added link
+**********************************************************/
+struct path_node* _addLink (struct path_node* n, char* d_path ) {
+	struct path_node *n_next = malloc( sizeof(struct path_node) );
+	n_next->d = d_path;
+	n_next->next = NULL;
+	n->next = n_next;
+	return n->next;
+}
 
+/**********************************************************
+Parameters: struct path_node* n : the head of a linked list
+Return: char* string representing directory structure
+Note: caller is responsible for deallocating char* returned
+**********************************************************/
+char* _listToChar( struct path_node* n ) {
+	int len = 0;
+	struct path_node* i = n; // iterator
+	// count length of all node values put together
+	while( i != NULL ) {
+		len = len + sizeof( i->next->d );
+		i = i->next;
+	}
+	printf( "len in _listToChar: %d", len );
+	
+	// make char* string of directory structure
+	char* dir_str = malloc( (len+1) * sizeof(char) );
+	memset(dir_str, 0, sizeof(dir_str));
+	i = n;
+	while( i != NULL ) {
+		strcat( dir_str, i->d );
+		i = i->next;
+	}
+	
+	return dir_str;
+}
 
 /**********************************************************
 Parameters: const char* filePath : the file path name
