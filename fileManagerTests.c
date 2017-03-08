@@ -8,14 +8,14 @@ Description: OSU Networking CS 372, Project 2
 ***********************************************************/
 
 #include "fileManager.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 
 int main() { 
 
 	char* dirListing = listDir(".");
-	printf( "%s\n", dirListing );
-	free( dirListing );
-	
+	printf( "%s", dirListing ); 
 	return 0;
 
 }
