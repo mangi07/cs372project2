@@ -29,8 +29,21 @@ struct path_node {
   struct path_node* next;
 };
 
-struct path_node* _addLink (struct path_node* n, char* d_path );
-void _dirList (const char* path, struct path_node* n);
+void free_nodes( struct path_node* head ) {
+	struct path_node* node = head;
+	while ( node != NULL ) {
+		struct path_node* temp = node;
+		node = node->next;
+		free( temp );
+	}
+	head = NULL;
+}
+
+/**********************************************************
+Forward declarations
+**********************************************************/
+struct path_node* _addLink (struct path_node** n, char* d_path );
+void _dirList (const char* path, struct path_node** n);
 char* _listToChar( struct path_node* n );
 
 /**********************************************************
@@ -48,15 +61,17 @@ char* listDir (const char* path) {
 	n->d = "";
 	n->next = NULL;
 	struct path_node* list_root = n;
-	_dirList (path, n);
-	return _listToChar( list_root );
+	_dirList (path, &n);
+	char* dir_listing = _listToChar( list_root );
+	free_nodes( list_root );
+	return dir_listing;
 }
 
 /**********************************************************
 Helper wrapped by listDir
-struct path_node* n must be initialized here
+Pre-Conditions: struct path_node* n must be initialized here
 **********************************************************/
-void _dirList (const char* path, struct path_node* n) {
+void _dirList (const char* path, struct path_node** n) {
 	// get file paths here
 	// adapted from: http://stackoverflow.com/questions/4204666/how-to-list-files-in-a-directory-in-a-c-program
 	DIR *d;
@@ -72,7 +87,7 @@ void _dirList (const char* path, struct path_node* n) {
 				if ( dir -> d_type == DT_DIR ) { // if it is a directory
 					_dirList( d_path, n ); // recall with the new path
 				} else { // we've reached a file name, so add entire path
-					n = _addLink( n, d_path );
+					*n = _addLink( n, d_path );
 					printf("%s\n", d_path);
 				}
 			}
@@ -86,12 +101,17 @@ Parameters: struct path_node* n : the tail of a linked list
 		char* d_path : the full path to add
 Return: the added link
 **********************************************************/
-struct path_node* _addLink (struct path_node* n, char* d_path ) {
+struct path_node* _addLink (struct path_node** n, char* d_path ) {
 	struct path_node *n_next = malloc( sizeof(struct path_node) );
-	n_next->d = d_path;
+	int len = (strlen(d_path)+2);
+	char* d = malloc( len * sizeof(char) );
+	memset( d, 0, len );
+	stpcpy( d, d_path );
+	strcat( d, "\n" );
+	n_next->d = d;
 	n_next->next = NULL;
-	n->next = n_next;
-	return n->next;
+	(*n)->next = n_next;
+	return (*n)->next;
 }
 
 /**********************************************************
@@ -104,14 +124,17 @@ char* _listToChar( struct path_node* n ) {
 	struct path_node* i = n; // iterator
 	// count length of all node values put together
 	while( i != NULL ) {
-		len = len + sizeof( i->next->d );
+		if ( i->next != NULL ) {
+			len = len + strlen( i->next->d );
+		}
 		i = i->next;
 	}
+	// TODO debug!!
 	printf( "len in _listToChar: %d", len );
 	
 	// make char* string of directory structure
 	char* dir_str = malloc( (len+1) * sizeof(char) );
-	memset(dir_str, 0, sizeof(dir_str));
+	memset(dir_str, 0, strlen(dir_str)+1 );
 	i = n;
 	while( i != NULL ) {
 		strcat( dir_str, i->d );
