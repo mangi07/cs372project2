@@ -14,8 +14,19 @@ Description: OSU Networking CS 372, Project 2
 
 int main() { 
 
+	printf( "\n***TEST listDir\n\n" );
 	char* dirListing = listDir(".");
-	printf( "%s", dirListing ); 
+	printf( "%s", dirListing );
+	// free??
+
+	printf( "\n***TEST loadFile\n\n" );
+	char* fileContents = loadFile( "testdir/testfile" );
+	printf( "%s", fileContents );
+	
+	printf( "\n***TEST loadFile 2\n\n" );
+	char* fileContents2 = loadFile( "testdir/bible.txt" );
+	printf( "%s", fileContents2 );
+	
 	return 0;
 
 }

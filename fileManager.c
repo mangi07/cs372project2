@@ -149,5 +149,50 @@ Parameters: const char* filePath : the file path name
 	relative to the current working directory
 Return: Contents of file contained in working directory.
 **********************************************************/
+char* loadFile( const char* file_path ) {
+	// modified from: http://stackoverflow.com/questions/3747086/reading-the-whole-text-file-into-a-char-array-in-c
+	
+	FILE *fp;
+	long lSize;
+	char *buffer;
 
+	fp = fopen ( file_path , "r" );
+	if( !fp ) {
+		buffer = calloc( 1, 15 );
+		char* error_msg = "FILE NOT FOUND";
+		strcpy(buffer, error_msg);
+		return buffer;
+	}
+
+	fseek( fp , 0L , SEEK_END);
+	lSize = ftell( fp );
+	rewind( fp );
+
+	/* allocate memory for entire content */
+	buffer = calloc( 1, lSize+1 );
+	if( !buffer ) {
+		fclose(fp);
+		buffer = calloc( 1, 42 );
+		char* error_msg = "SERVER COULD NOT ALLOCATE MEMORY FOR FILE";
+		strcpy(buffer, error_msg);
+		return buffer;
+	}
+
+	/* copy the file into the buffer */
+	if( 1 != fread( buffer , lSize, 1 , fp) ) {
+		fclose(fp);
+		free(buffer);
+		buffer = calloc( 1, 19 );
+		char* error_msg = "ERROR READING FILE";
+		strcpy(buffer, error_msg);
+		return buffer;
+	}
+
+	/* buffer is a string contains the whole text */
+
+	fclose(fp);
+	
+	return buffer;
+
+}
 

@@ -23,7 +23,7 @@ Note: functions documented in source, fileManager.c
 #include <stdlib.h>
 
 char* listDir (char* path);
-
+char* loadFile( const char* file_path );
 
 
 
