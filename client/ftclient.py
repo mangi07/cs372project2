@@ -6,7 +6,21 @@
 from socket import *
 import sys
 
+"""
+characters needed to hold string representation
+of number max 9223372036854775807
+"""
 HEADER_LEN = 19
+
+"""
+Simple protocol used (length followed by data):
+**length: The first HEADER_LEN (19) bytes received
+will be a string representation of
+the number of following data bytes being sent.
+This is because sys.maxint is estimated to be
+9223372036854775807 bytes
+**data: The following data should be length bytes.
+"""
 
 # client has at least initiateContact , makeRequest ,
 # receiveFile functions
@@ -35,22 +49,9 @@ def makeConnection(host, port):
     clientSocket.connect((host, port))
     return clientSocket
 
-# TODO: finish this function
 """
 Description:
 Receives a message from the server
-based on a simple protocol defined as follows:
-The first chunk received contains either
-(1) the size of the message to receive in bytes, or
-(2) an error message
-
-Simple protocol used (length followed by data):
-**length: The first HEADER_LEN (19) bytes received
-will be a string representation of
-the number of following data bytes being sent.
-This is because sys.maxint is estimated to be
-9223372036854775807 bytes
-**data: The following data should be length bytes.
 
 Arguments:
 sock: a connected socket ready to send and recv
@@ -67,37 +68,49 @@ def receiveMessage(sock):
 
     # receive first 19 bytes to determine length of message
     while bytes_received < HEADER_LEN:
-        temp_str = sock.recv()
+        temp_str = sock.recv(HEADER_LEN)
         string += temp_str
         bytes_received += len(temp_str)
     if len(string) > HEADER_LEN:
         remainder_str = string[HEADER_LEN:]
     bytes_expected = int(string[:HEADER_LEN])
 
-    # TODO: recv loop to keep getting message up to its length
-    while True:
+    bytes_received = len(remainder_str)
+
+    string = ""
+    while bytes_received < bytes_expected:
         try:
-            string += sock.recv()
+            temp = sock.recv()
+            bytes_received += len(temp)
+            string += temp
         except:
             sock.close()
             print "ERROR RECEIVING DATA"
             sys.exit(1)
-    print sentence
+
+    sock.close()
 
 
 """
-This should send a pair of messages:
-first the length in bytes, then the string itself
+Description:
+Send a message to the server
+
+Arguments:
+sock: a connected socket ready to send and recv
 """
 def sendCommand(command, sock):
     byte_len = len(command)
-    # TODO: while loop to send everything up to byte_len: check return value of send
-    try:
-        sock.send(byte_len)
-        sock.send(command)
-    except:
-        print("ERROR SENDING MESSAGE")
-        sock.close()
+    message = "" + str(byte_len).rjust(HEADER_LEN) + command
+    message_len = len(message)
+    bytes_sent = 0
+
+    while bytes_sent < message_len:
+        try:
+            bytes_sent += sock.send(message)
+            message = message[bytes_sent:]
+        except:
+            print("ERROR SENDING MESSAGE")
+            sock.close()
 
 
 """
