@@ -6,6 +6,8 @@
 from socket import *
 import sys
 
+HEADER_LEN = 19
+
 # client has at least initiateContact , makeRequest ,
 # receiveFile functions
 # TODO: look at discussion board for answer about how to handle file overwriting
@@ -42,6 +44,14 @@ The first chunk received contains either
 (1) the size of the message to receive in bytes, or
 (2) an error message
 
+Simple protocol used (length followed by data):
+**length: The first HEADER_LEN (19) bytes received
+will be a string representation of
+the number of following data bytes being sent.
+This is because sys.maxint is estimated to be
+9223372036854775807 bytes
+**data: The following data should be length bytes.
+
 Arguments:
 sock: a connected socket ready to send and recv
 
@@ -50,17 +60,29 @@ string of characters received
 or the error message received
 """
 def receiveMessage(sock):
-    # TODO: recv loop to get length of message received
     string = ""
+    bytes_received = 0
+    remainder_str = ""
+    bytes_expected = 0
+
+    # receive first 19 bytes to determine length of message
+    while bytes_received < HEADER_LEN:
+        temp_str = sock.recv()
+        string += temp_str
+        bytes_received += len(temp_str)
+    if len(string) > HEADER_LEN:
+        remainder_str = string[HEADER_LEN:]
+    bytes_expected = int(string[:HEADER_LEN])
+
     # TODO: recv loop to keep getting message up to its length
-    while :
+    while True:
         try:
             string += sock.recv()
         except:
             sock.close()
-            return
+            print "ERROR RECEIVING DATA"
+            sys.exit(1)
     print sentence
-    sendMessage()
 
 
 """
