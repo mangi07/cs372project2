@@ -15,8 +15,6 @@
 #include <sys/wait.h>
 #include <signal.h>
 
-#define PORT "3490"  // the port users will be connecting to
-
 #define BACKLOG 10	 // how many pending connections queue will hold
 
 /*
@@ -69,7 +67,7 @@ int main(void)
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_PASSIVE; // use my IP
 
-	if ((rv = getaddrinfo(NULL, PORT, &hints, &servinfo)) != 0) {
+	if ((rv = getaddrinfo(NULL, "3490", &hints, &servinfo)) != 0) {
 		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
 		return 1;
 	}
@@ -152,5 +150,101 @@ int main(void)
 	return 0;
 }
 
+/*
+Description: Open a new socket with given host and port number
+Return: socket file descriptor of listening socket
+*/
+void bindAndListen( const char* host, const char* PORT ){
+	int sockfd;  // listen on sock_fd
+	struct addrinfo hints, *servinfo, *p;
+	// struct sockaddr_storage their_addr; // connector's address information
+	//socklen_t sin_size;
+	struct sigaction sa;
+	int yes=1;
+	//char s[INET6_ADDRSTRLEN];
+	int rv;
+
+	memset(&hints, 0, sizeof hints);
+	hints.ai_family = AF_INET; // IPv4
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_flags = AI_PASSIVE; // use my IP
+
+	if ((rv = getaddrinfo(NULL, PORT, &hints, &servinfo)) != 0) {
+		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+		exit(1);
+	}
+
+	// loop through all the results and bind to the first we can
+	for(p = servinfo; p != NULL; p = p->ai_next) {
+		if ((sockfd = socket(p->ai_family, p->ai_socktype,
+				p->ai_protocol)) == -1) {
+			perror("server: socket");
+			continue;
+		}
+
+		if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes,
+				sizeof(int)) == -1) {
+			perror("setsockopt");
+			exit(1);
+		}
+
+		if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
+			close(sockfd);
+			perror("server: bind");
+			continue;
+		}
+
+		break;
+	}
+
+	freeaddrinfo(servinfo); // all done with this structure
+
+	if (p == NULL)  {
+		fprintf(stderr, "server: failed to bind\n");
+		exit(1);
+	}
+
+	if (listen(sockfd, BACKLOG) == -1) {
+		perror("listen");
+		exit(1);
+	}
+
+	sa.sa_handler = sigchld_handler; // reap all dead processes
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = SA_RESTART;
+	if (sigaction(SIGCHLD, &sa, NULL) == -1) {
+		perror("sigaction");
+		exit(1);
+	}
+
+}
+
+/*
+Description: Make a connection with new client on given socket
+Return: New file descriptor for incoming connection or -1 on error
+*/
+int acceptCient( int sockfd ){
+	struct sockaddr_storage their_addr; // connector's address information
+	int new_fd; // new connection
+	socklen_t sin_size;
+	char s[INET6_ADDRSTRLEN];
+	
+	sin_size = sizeof their_addr;
+	new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size);
+	printf( "DEBUG: new_fd: %d\n", new_fd );
+	if (new_fd == -1) {
+		perror("accept");
+		return -1;
+	}
+
+	inet_ntop(their_addr.ss_family,
+		get_in_addr((struct sockaddr *)&their_addr),
+		s, sizeof s);
+	printf("server: got connection from %s\n", s);
+	
+	return new_fd;
+}
+
 // define send and recv wrapper functions here, modelling after corresponding python functions
 
+// define startup and handleRequest functions
