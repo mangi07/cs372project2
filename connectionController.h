@@ -9,36 +9,19 @@ Description: OSU Networking CS 372, Project 2
   
   Manages opening and closing TCP connections and
   sending and receiving data through TCP connections.
+  
+  **See connectionController.c for function comments.
 ***********************************************************/
 
 #ifndef CONNECTIONCONTROLLER_H
 #define CONNECTIONCONTROLLER_H
 
 
-/**********************************************************
-Pre-Conditions: portno is declared
-Description: Validate char* input as valid port number:
-  requirements: (1) port numbers 30021, 30020 not accepted
-  (2) port number > 1024 and < 65535
-Return: 0: invalid port number OR if valid,
-	conversion of portno to it's numeric equivalent.
-**********************************************************/
-int processPortNumber ( const char* portno );
+int isValidPortNumber ( const char* portno );
 
-/**********************************************************
-Description: Convert char* num to int:
-  requirements: (1) char* num must be convertable to int
-Return: 0: invalid number OR if valid,
-	conversion of num to it's numeric equivalent.
-**********************************************************/
-int _charToInt ( const char* portno );
+long long _charToLongLong ( const char* num_str );
 
-/**********************************************************
-Pre-Conditions: portno is a valid port number
-Description: Validate char* as 
-Return: 0: invalid port number OR if valid,
-	conversion of portno to it's numeric equivalent.
-**********************************************************/
+int startup( const char* PORT );
 
 #endif
 

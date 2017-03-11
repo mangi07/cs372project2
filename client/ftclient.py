@@ -77,6 +77,7 @@ def receiveMessage(sock):
 
     bytes_received = len(remainder_str)
 
+    # receive the data
     string = ""
     while bytes_received < bytes_expected:
         try:
@@ -182,8 +183,8 @@ if __name__ == "__main__":
 
     host, control_port, data_port = getConnInfo()
     sock = makeConnection(host, control_port)
-    #sendCommand(getCommand(), sock)
-    receiveMessage(sock)
+    sendCommand(getCommand(), sock)
+    #receiveMessage(sock)
 
 
     print
