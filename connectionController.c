@@ -36,6 +36,9 @@ void *get_in_addr(struct sockaddr *sa)
 #define HEADER_LEN 19
 
 void handleRequest(int sockfd);
+char* recvLen(int len, int sockfd);
+char* receiveCommand( int sockfd );
+void sendMessage(char message[], int len, int sockfd);
 
 /**********************************************************
 Pre-Conditions: portno is declared
@@ -198,15 +201,7 @@ int startup( const char* PORT ){
 		
 		if (!fork()) { // this is the child process
 			close(sockfd); // child doesn't need the listener
-			//handleRequest(sockfd);
-			// receive command
-			// the following will turn into a recv
-			if (send(new_fd, "9223372036854775807ABC", 22, 0) == -1)
-				perror("send");
-			close(new_fd);
-			// open new connection on port given by client
-			// send based on command
-			// close socket
+			handleRequest(new_fd);
 			exit(0);
 		}
 		close(new_fd);  // parent doesn't need this
@@ -226,11 +221,23 @@ This is because long long is estimated to be
 **data: The following data should be length bytes.
 */
 void handleRequest(int sockfd){
-	// receive port number and command for data connection
-	long long expected_length;
+	// TODO: receive port number and command for data connection
 	
+	char* command = receiveCommand( sockfd );
+	printf( "DEBUG in handleRequest: command = '%s'\n\n", command );
+	// TODO: parse string for command to get data port number and command
 	
-	int sockfd = bindAndListen( PORT );
+	// sockfd = bindAndListen( PORT from command ); // TODO: uncomment and continue here to 
+	// open a data connection on data port number
+	
+	// if -l ..., else if -g <file> ...
+	// sendMessage(char message[], int len, int sockfd)
+	
+	/* use some of this?
+	if (send(new_fd, "9223372036854775807ABC", 22, 0) == -1)
+				perror("send");
+			close(new_fd);
+	*/
 }
 
 /*
@@ -241,51 +248,44 @@ TODO: calls recvLen twice: get command length and then command
 
 Return: Command from client to be carried out on data connection
 */
-char* receiveCommand( int sockfd, int* new_fd ){
+char* receiveCommand( int sockfd ){
 	char* string = NULL;
-    long long bytes_received = 0;
-    char* remainder_str = NULL;
-    long long bytes_expected = 0;
+	long long bytes_expected = 0;
 
-    # receive first 19 bytes to determine length of message
-    while ( bytes_received < HEADER_LEN ){
-		string = (int*)calloc( n, sizeof(int) );
-		temp_str = recv( 4092 );
-		string += temp_str
-		bytes_received += len(temp_str)
-	}
-    if len(string) > HEADER_LEN:
-        remainder_str = string[HEADER_LEN:]
-    bytes_expected = int(string[:HEADER_LEN])
-
-    bytes_received = len(remainder_str)
-
-	# receive the data
-    string = ""
-    while bytes_received < bytes_expected:
-        try:
-            temp = sock.recv(4092)
-            if temp == "":
-                break
-            bytes_received += len(temp)
-            string += temp
-        except:
-            sock.close()
-            print "ERROR RECEIVING DATA"
-            sys.exit(1)
-
-    sock.close()
-
+    // receive first 19 bytes to determine length of message
+	string = recvLen(HEADER_LEN, sockfd);
+	bytes_expected = _charToLongLong(string);
+	printf( "DEBUG in receiveCommand: bytes_expeted = %lld\n\n", bytes_expected );
+	//free(string); // TODO: uncomment after testing
+	//string = NULL; // TODO: uncomment after testing
+	
+	
+	
+	// receive the data
+    //string = recvLen(bytes_expected, sockfd); // TODO: uncomment after testing
+	
+	return string;
 }
 
 // TODO: define function to carry out command here, making use of sendMessage below
 
 // TODO: adapt the following two functions
 
-void recvLen(char message[], int len, int sockfd)
-{	
-	// zero-fill message
-	memset(message, 0, len);
+/*
+Description: Receive len bytes into message c-string 
+(appending '\0' right after bytes received).
+Pre-Conditions: memory is allocated for message array
+Return: dynamically allocated c-string containing bytes received
+**Note: caller is responsible for freeing returned string 
+*/
+char* recvLen(int len, int sockfd)
+{
+	// prepare receiving string
+	int message_size = len * sizeof(char) + 1;
+	char* message = malloc(message_size); // one extra for null terminator
+	memset(message, 0, message_size); // zero-fill message
+	//int chunk_size = 4096;
+	//int recv_len = (len<chunk_size)?len:chunk_size;
 	
 	int total_bytes = 0;
 	int bytes_recv = recv(sockfd, message, len, 0);
@@ -295,25 +295,30 @@ void recvLen(char message[], int len, int sockfd)
 			printf( "%s\n", message );
 			break;
 		} else if ( bytes_recv == -1 ) {
-			//perror("recv");
+			perror("recv");
 			attempts++;
 		} else if ( bytes_recv == 0 ) {
-			printf( "Server closed connection.\n" );
+			printf( "Client may have closed connection.\n" );
 			close(sockfd);
 			exit(0);
 		} else if ( bytes_recv < len && bytes_recv > 0 ) {
 			total_bytes += bytes_recv;
+			//int remaining = len - total_bytes;
+			//recv_len = (remaining < chunk_size) ? len : chunk_size;
+			//bytes_recv = recv(sockfd, &message[total_bytes], len - total_bytes, 0);
 			bytes_recv = recv(sockfd, &message[total_bytes], len - total_bytes, 0);
 		}
 	}
+	/*
 	if (attempts >= 20){
 		close(sockfd);
+		perror("recv");
 		exit(0);
 	}
-	if ( total_bytes == 0 ) {
-		total_bytes = bytes_recv;
-	}
+	*/
 	message[total_bytes] = '\0';
+	
+	return message;
 }
 
 void sendMessage(char message[], int len, int sockfd)
@@ -337,3 +342,6 @@ void sendMessage(char message[], int len, int sockfd)
 		exit(0);
 	}
 }
+
+
+

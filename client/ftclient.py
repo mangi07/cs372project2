@@ -154,10 +154,15 @@ def getCommand():
     filename = ''
     if len(sys.argv) == 6:
         filename = sys.argv[4]
+        portno = sys.argv[5]
+    else:
+        portno = sys.argv[4]
     # check that command is correct syntax
     if command != '-l' and command != '-g':
         printUsage()
-    return command + " " + filename
+    command = command + " " + filename + portno
+    print "DEBUG: command length: " + str(len(command))
+    return command
 
 
 def printUsage():
