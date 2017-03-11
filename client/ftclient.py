@@ -80,7 +80,9 @@ def receiveMessage(sock):
     string = ""
     while bytes_received < bytes_expected:
         try:
-            temp = sock.recv()
+            temp = sock.recv(4092)
+            if temp == "":
+                break
             bytes_received += len(temp)
             string += temp
         except:
@@ -179,10 +181,9 @@ if __name__ == "__main__":
     print getCommand()
 
     host, control_port, data_port = getConnInfo()
-    #exit(0)
-    #sock = makeConnection(host, control_port)
+    sock = makeConnection(host, control_port)
     #sendCommand(getCommand(), sock)
-    #receiveMessage(sock)
+    receiveMessage(sock)
 
 
     print
