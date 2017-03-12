@@ -1,10 +1,22 @@
-# Author: Ben R. Olson
-# Date: 2-11-17
+"""
+Author: Ben R. Olson
+Date: 2-11-17
+Adapted from https://docs.python.org/2/library/socket.html#example
 
-# Adapted from https://docs.python.org/2/library/socket.html#example
+Description: Simple ftp client that either
+(1) recursively lists files on server or
+(2) attempts to download a file from the server
+    The file download attempt will fail if the file name
+(just file name without path) is found in the client's
+working directory.
+    The file download attempt will still be made if no
+file of the same name is found in the working directory,
+even if found in a subdirectory.
+"""
 
 from socket import *
 import sys
+import os.path
 
 """
 characters needed to hold string representation
@@ -24,17 +36,7 @@ This is because sys.maxint is estimated to be
 
 # client has at least initiateContact , makeRequest ,
 # receiveFile functions
-# TODO: look at discussion board for answer about how to handle file overwriting
-"""
-HOST = 'daring.cwi.nl'    # The remote host
-PORT = 50007              # The same port as used by the server
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.connect((HOST, PORT))
-s.sendall('Hello, world')
-data = s.recv(1024)
-s.close()
-print 'Received', repr(data)
-"""
+
 
 """
 Arguments:
@@ -118,6 +120,7 @@ def sendCommand(command, sock):
 
 """
 Pre-Conditions: sys.argv length must be 5 or 6
+
 Returns: a tuple representing the connection to be made:
 (control_port, data_port, host)
 """
@@ -137,6 +140,28 @@ def getConnInfo():
             printUsage()
     except ValueError:
         printUsage()
+
+    """
+    Validate char* input as valid port number:
+    requirements: (1) control port and data port must be different
+    (2) port numbers 30021, 30020 not accepted
+    (3) port number > 1024 and < 65535
+    """
+    if control_port == data_port: # (1)
+        print "INPUT ERROR: control port and data port must be different"
+        sys.exit(1)
+    if control_port == 30021 or control_port == 30020: # (2)
+        print "INPUT ERROR: control port cannot be 30021 or 30020"
+        sys.exit(1)
+    if data_port == 30021 or data_port == 30020: # (2)
+        print "INPUT ERROR: data port cannot be 30021 or 30020"
+        sys.exit(1)
+    if control_port < 1024 or control_port > 65535: # (3)
+        print "INPUT ERROR: control port must be within range 1024 to 65535"
+        sys.exit(1)
+    if data_port < 1024 or data_port > 65535: # (3)
+        print "INPUT ERROR: data port must be within range 1024 to 65535"
+        sys.exit(1)
 
     host = sys.argv[1]
 
@@ -164,14 +189,24 @@ def getCommand():
         portno = sys.argv[5]
     else:
         portno = sys.argv[4]
-    # uncomment these after done testing on server
+
     # check that command is correct syntax
-    #if command != '-l' and command != '-g':
-    #    printUsage()
-    #if not representsInt(portno):
-    #    printUsage()
+    if command != '-l' and command != '-g':
+        printUsage()
+    if not representsInt(portno):
+        printUsage()
+
+    """Validate file does not exist in working directory"""
+    f = filename[filename.rfind("/", 0)+1:]
+    print "DEBUG: {0}".format(f)
+    if command == '-g' and os.path.exists(f):
+        print "INPUT ERROR: filename exists in working directory."
+        print "Stopping to prevent overwriting file \"{0}\"".format(f)
+        sys.exit(1)
+
+    flag = command
     command = command + " " + filename + " " + portno
-    return command
+    return command, flag, filename, portno
 
 
 def printUsage():
@@ -179,7 +214,7 @@ def printUsage():
     print "Arguments:\n"
     print "<hostname>: use localhost or flip1\n"
     print "<control portnumber>: must be a number in range (1024 to 65535) but not 30021 or 30020\n" \
-          "\t(Note: The port number must be the same port that the server started on.)\n"
+          "\t(Note: <control portnumber> must be the same port that the server started on.)\n"
     print "<command>: The command can take either one of the following formats:\n" \
           "\t(1) \'-l\' (without quotes) to list all files within the working directory\n" \
           "\t(2) \'-g <filename>\' (without quotes) to request the given filename.\n"
@@ -191,15 +226,28 @@ if __name__ == "__main__":
     if len(sys.argv) != 5 and len(sys.argv) != 6:
         printUsage()
 
-    # DEBUG
     print getConnInfo()
-    print getCommand()
+    command, flag, filename, portno = getCommand()
 
+    # control connection
     host, control_port, data_port = getConnInfo()
     sock = makeConnection(host, control_port)
-    sendCommand(getCommand(), sock)
+    sendCommand(command, sock)
     print receiveMessage(sock)
+    sock.close()
 
+    # data connection
+    data_sock = makeConnection(host, data_port)
+    if flag == '-l':
+        print receiveMessage(sock)
+    elif flag == '-g':
+        # check if file was successfully retreived on server
+        if receiveMessage(sock) == "OK":
+            print "Receiving \"{0}\" from :{1}".format(filename, portno)
+            print receiveMessage(sock)  # turn this into file write
+        else:
+            print receiveMessage(sock)
+    data_sock.close()
 
     print
     print "Connection closed."

@@ -33,6 +33,8 @@ void *get_in_addr(struct sockaddr *sa)
 #include <signal.h>
 #include <limits.h>
 
+#include "fileManager.h"
+
 #define BACKLOG 10	 // how many pending connections queue will hold
 #define HEADER_LEN 19
 
@@ -214,7 +216,6 @@ int startup( const char* PORT ){
 	return 0;
 }
 
-// TODO: define handleRequest function
 /*
 Simple protocol used (length followed by data):
 **length: The first HEADER_LEN (19) bytes received
@@ -244,6 +245,10 @@ void handleRequest(int sockfd){
 	// open a data connection on data port number
 	int datafd = bindAndListen( port );
 	
+	// check command
+	//if -g, try to get the file
+	/*function declaration from fileManager.h:
+		char* loadFile( const char* file_path, int* error )*/
 	// sendMessage(char message[], int len, int sockfd)
 	
 	close(datafd);
@@ -257,8 +262,6 @@ void handleRequest(int sockfd){
 /*
 Description: Open new connection on port given by client
 and set new_fd for data connection
-
-TODO: calls recvLen twice: get command length and then command
 
 Return: Command from client to be carried out on data connection
 */

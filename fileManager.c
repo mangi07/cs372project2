@@ -130,7 +130,7 @@ char* _listToChar( struct path_node* n ) {
 		}
 		i = i->next;
 	}
-	printf( "len in _listToChar: %d", len );
+	//printf( "len in _listToChar: %d", len );
 	
 	// make char* string of directory structure
 	char* dir_str = malloc( (len+1) * sizeof(char) );
@@ -149,7 +149,7 @@ Parameters: const char* filePath : the file path name
 	relative to the current working directory
 Return: Contents of file contained in working directory.
 **********************************************************/
-char* loadFile( const char* file_path ) {
+char* loadFile( const char* file_path, int* error ) {
 	// modified from: http://stackoverflow.com/questions/3747086/reading-the-whole-text-file-into-a-char-array-in-c
 	
 	FILE *fp;
@@ -160,6 +160,7 @@ char* loadFile( const char* file_path ) {
 	if( !fp ) {
 		buffer = calloc( 1, 15 );
 		char* error_msg = "FILE NOT FOUND";
+		*error = 1;
 		strcpy(buffer, error_msg);
 		return buffer;
 	}
@@ -174,6 +175,7 @@ char* loadFile( const char* file_path ) {
 		fclose(fp);
 		buffer = calloc( 1, 42 );
 		char* error_msg = "SERVER COULD NOT ALLOCATE MEMORY FOR FILE";
+		*error = 1;
 		strcpy(buffer, error_msg);
 		return buffer;
 	}
@@ -184,6 +186,7 @@ char* loadFile( const char* file_path ) {
 		free(buffer);
 		buffer = calloc( 1, 19 );
 		char* error_msg = "ERROR READING FILE";
+		*error = 1;
 		strcpy(buffer, error_msg);
 		return buffer;
 	}
@@ -191,6 +194,7 @@ char* loadFile( const char* file_path ) {
 	/* buffer is a string contains the whole text */
 
 	fclose(fp);
+	*error = 0; // no errors
 	
 	return buffer;
 
