@@ -47,20 +47,6 @@ char* prepareMessage( char* payload );
 
 
 /**********************************************************
-Pre-Conditions: portno is declared
-Description: Validate char* input as valid port number:
-  requirements: (1) port numbers 30021, 30020 not accepted
-  (2) port number > 1024 and < 65535
-Return: 0: invalid port number OR if valid,
-	conversion of portno to it's numeric equivalent.
-**********************************************************/
-int isValidPortNumber ( const char* portno ) {
-	
-	return 0;
-}
-
-
-/**********************************************************
 Description: Convert char* num to int:
   requirements: (1) char* num must be convertable to int
 Return: 0: invalid number OR if valid,
@@ -170,7 +156,7 @@ Modified from: http://beej.us/guide/bgnet/examples/server.c
 Description: Make a connection with new client on given socket
 Return: New file descriptor for incoming connection or -1 on error
 */
-int acceptCient( int sockfd ){
+int acceptClient( int sockfd ){
 	struct sockaddr_storage their_addr; // connector's address information
 	int new_fd; // new connection
 	socklen_t sin_size;
@@ -202,7 +188,7 @@ int startup( const char* PORT ){
 	int sockfd = bindAndListen( PORT );
 	
 	while(1) {  // main accept() loop
-		int new_fd = acceptCient( sockfd );
+		int new_fd = acceptClient( sockfd );
 		// TODO: check for return value of -1 and close sockfd as well as new_fd
 		
 		if (!fork()) { // this is the child process
@@ -226,7 +212,7 @@ This is because long long is estimated to be
 **data: The following data should be length bytes.
 */
 void handleRequest(int sockfd){
-	int action;
+	int get_file;
 	char file_path[PATH_MAX];
 	memset(file_path, 0, sizeof(file_path));
 	char port[100];
@@ -235,28 +221,50 @@ void handleRequest(int sockfd){
 	char* command = receiveCommand( sockfd );
 	//printf( "DEBUG in handleRequest: command = '%s'\n\n", command );
 	
-	parseCommand( command, &action, file_path, port, sockfd ); // command syntax error --> send error msg and close connection
+	parseCommand( command, &get_file, file_path, port, sockfd ); // command syntax error --> send error msg and close connection
 	free(command);
-	//printf( "DEBUG in handleRequest...\naction: %d\nfile: %s\nport: %s\n", action, file_path, port ); 
+	//printf( "DEBUG in handleRequest...\naction: %d\nfile: %s\nport: %s\n", get_file, file_path, port ); 
 	
 	// close current connection
 	close(sockfd);
 	
 	// open a data connection on data port number
 	int datafd = bindAndListen( port );
+	int new_fd = acceptClient( datafd );
 	
-	// check command
-	//if -g, try to get the file
-	/*function declaration from fileManager.h:
+	// wait for client to say "OK"
+	char* ready = receiveCommand(new_fd);
+	printf( "DEBUG in handleRequest, ready: %s\n\n", ready );
+	
+	// check action and respond accordingly
+	if ( get_file == 1 ){ // try to get the file
+		/*in this case the client is expecting either
+		(1) two messages if file retrieval was successful or
+		(2) one message if not.
+		
+		First message is always either "OK" or "NO" 
+		to indicate successful file retrieval.
+		
+		function declaration from fileManager.h:
 		char* loadFile( const char* file_path, int* error )*/
+		int error;
+		char* payload = loadFile( file_path, &error );
+		printf( "DEBUG in handleRequest, error: %d\n\n", error );
+		printf( "DEBUG in handleRequest, payload: %s\n\n", payload );
+		// first send "OK" or "NO", then...
+		char* message = prepareMessage( payload ); // ...and client will know what to do with it
+		printf( "DEBUG in handleRequest, message: %s\n\n", message );
+		sendMessage(message, strlen(message), new_fd);
+	}
+	
+	// check if file loaded successfully
 	// sendMessage(char message[], int len, int sockfd)
 	
+	//if -l, simply send a message with directory listing attempt,
+	//message contains directory listing or error detail
+	
 	close(datafd);
-	/* use some of this?
-	if (send(new_fd, "9223372036854775807ABC", 22, 0) == -1)
-				perror("send");
-			close(new_fd);
-	*/
+	close(new_fd);
 }
 
 /*
@@ -419,8 +427,10 @@ char* recvLen(int len, int sockfd)
 	//int recv_len = (len<chunk_size)?len:chunk_size;
 	
 	printf( "1) message in recvLen: %s\n\n", message );
+	printf( "1a) len in recvLen: %d\n", len );
 	int total_bytes = 0;
 	int bytes_recv = recv(sockfd, message, len, 0);
+	printf( "1b) len in recvLen: %d\n", len );
 	int attempts = 0;
 	while ( attempts < 20 && total_bytes < len ) {
 		if ( bytes_recv == len ) {

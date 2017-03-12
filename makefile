@@ -12,12 +12,12 @@ default: ftserver.c connectionController.o fileManager.o
 	gcc -Wall -g -o ftserver ftserver.c
     
 tests: connectionController.o connectionControllerTests.c fileManager.o
-	gcc -Wall -g -o connectionControllerTests connectionControllerTests.c connectionController.o
+	gcc -Wall -g -o connectionControllerTests connectionControllerTests.c connectionController.o fileManager.o
 	gcc -Wall -g -o fileManagerTests fileManagerTests.c fileManager.o
 
 	
 # build helper functions	
-connectionController.o: connectionController.c connectionController.h
+connectionController.o: connectionController.c connectionController.h fileManager.o
 	gcc -Wall -g -c connectionController.c
 
 fileManager.o: fileManager.c fileManager.h

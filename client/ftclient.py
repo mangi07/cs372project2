@@ -48,6 +48,7 @@ clientSocket: the socket for this client's connection
 """
 def makeConnection(host, port):
     clientSocket = socket(AF_INET, SOCK_STREAM)
+    #clientSocket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
     clientSocket.connect((host, port))
     return clientSocket
 
@@ -92,6 +93,7 @@ def receiveMessage(sock):
             sock.close()
             print "ERROR RECEIVING DATA"
             sys.exit(1)
+    #sock.shutdown(1)
     sock.close()
     return string
 
@@ -238,15 +240,17 @@ if __name__ == "__main__":
 
     # data connection
     data_sock = makeConnection(host, data_port)
+    # tell server we're ready to receive
+    sendCommand("OK", data_sock)
     if flag == '-l':
-        print receiveMessage(sock)
+        print receiveMessage(data_sock)
     elif flag == '-g':
         # check if file was successfully retreived on server
-        if receiveMessage(sock) == "OK":
+        if receiveMessage(data_sock) == "OK":
             print "Receiving \"{0}\" from :{1}".format(filename, portno)
-            print receiveMessage(sock)  # turn this into file write
+            print receiveMessage(data_sock)  # turn this into file write
         else:
-            print receiveMessage(sock)
+            print receiveMessage(data_sock)
     data_sock.close()
 
     print
