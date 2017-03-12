@@ -44,6 +44,7 @@ char* receiveCommand( int sockfd );
 void sendMessage(char message[], int len, int sockfd);
 void parseCommand( char* command, int* get_file, char* file, char* port, int sockfd );
 char* prepareMessage( char* payload );
+int getPortNo(int sock);
 
 
 /**********************************************************
@@ -247,24 +248,35 @@ void handleRequest(int sockfd){
 		
 		function declaration from fileManager.h:
 		char* loadFile( const char* file_path, int* error )*/
+		
+		// attempt to get file
 		int error;
 		char* payload = loadFile( file_path, &error );
 		printf( "DEBUG in handleRequest, error: %d\n\n", error );
 		printf( "DEBUG in handleRequest, payload: %s\n\n", payload );
-		// first send "OK" or "NO", then...
-		char* message = prepareMessage( payload ); // ...and client will know what to do with it
+		
+		// send "OK" or "NO", whether file retrieval was successful...
+		if ( error == 0 ) {
+			sendMessage("                  2OK", 21, new_fd);
+		} else {
+			sendMessage("                  2NO", 21, new_fd);
+		}
+		// ...and client will know what to do with it
+		
+		char* message = prepareMessage( payload ); 
 		printf( "DEBUG in handleRequest, message: %s\n\n", message );
 		sendMessage(message, strlen(message), new_fd);
 	}
 	
-	// check if file loaded successfully
-	// sendMessage(char message[], int len, int sockfd)
+	// wait for client to say "OK" before closing connection
+	char* confirm_close = receiveCommand(new_fd);
+	printf( "DEBUG in handleRequest, confirm_close: %s\n\n", confirm_close );
 	
-	//if -l, simply send a message with directory listing attempt,
-	//message contains directory listing or error detail
-	
+	int new_fd_port = getPortNo(new_fd);
 	close(datafd);
 	close(new_fd);
+	
+	printf( "SERVER closed connection on port %d\n\n.", new_fd_port );
 }
 
 /*
@@ -487,6 +499,7 @@ void sendMessage(char message[], int len, int sockfd)
 		close(sockfd);
 		exit(0);
 	}
+	printf( "SERVER: sending message" );
 }
 
 

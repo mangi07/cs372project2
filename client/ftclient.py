@@ -71,7 +71,7 @@ def receiveMessage(sock):
 
     # receive first 19 bytes to determine length of message
     while bytes_received < HEADER_LEN:
-        temp_str = sock.recv(HEADER_LEN)
+        temp_str = sock.recv(HEADER_LEN-bytes_received)
         string += temp_str
         bytes_received += len(temp_str)
     if len(string) > HEADER_LEN:
@@ -84,7 +84,7 @@ def receiveMessage(sock):
     string = ""
     while bytes_received < bytes_expected:
         try:
-            temp = sock.recv(4092)
+            temp = sock.recv(bytes_expected-bytes_received)
             if temp == "":
                 break
             bytes_received += len(temp)
@@ -93,8 +93,6 @@ def receiveMessage(sock):
             sock.close()
             print "ERROR RECEIVING DATA"
             sys.exit(1)
-    #sock.shutdown(1)
-    sock.close()
     return string
 
 
@@ -220,7 +218,8 @@ def printUsage():
     print "<command>: The command can take either one of the following formats:\n" \
           "\t(1) \'-l\' (without quotes) to list all files within the working directory\n" \
           "\t(2) \'-g <filename>\' (without quotes) to request the given filename.\n"
-    print "Example: python ftclient.py localhost 50000"
+    print "Example 1: python ftclient.py localhost 50000 -g testdir/testfile.txt 50004"
+    print "Example 2: python ftclient.py localhost 50000 -l 50004"
     sys.exit(1)
 
 
@@ -228,7 +227,6 @@ if __name__ == "__main__":
     if len(sys.argv) != 5 and len(sys.argv) != 6:
         printUsage()
 
-    print getConnInfo()
     command, flag, filename, portno = getCommand()
 
     # control connection
@@ -246,12 +244,23 @@ if __name__ == "__main__":
         print receiveMessage(data_sock)
     elif flag == '-g':
         # check if file was successfully retreived on server
-        if receiveMessage(data_sock) == "OK":
+        success = receiveMessage(data_sock)
+        if success == "OK":
             print "Receiving \"{0}\" from :{1}".format(filename, portno)
             print receiveMessage(data_sock)  # turn this into file write
         else:
             print receiveMessage(data_sock)
+    # send confirmation to server, "OK" to close connection on server
+    sendCommand("OK", data_sock)
+
     data_sock.close()
 
+    # TODO: test with "python ftclient.py localhost 3490 -g testdir/testfile.txt 50004"
+    # TODO: test with "python ftclient.py localhost 3490 -g testdir/bible.txt 50004"
+    # TODO: test with "python ftclient.py localhost 3490 -l 50004"
+    # TODO: test these on server
+    # TODO: commit
+    # TODO: replace debug statements with useful status updates
+    # TODO: replace hard-coded server port with command line input to get port number for server startup
     print
     print "Connection closed."
