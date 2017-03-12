@@ -90,8 +90,8 @@ def receiveMessage(sock):
             sock.close()
             print "ERROR RECEIVING DATA"
             sys.exit(1)
-
     sock.close()
+    return string
 
 
 """
@@ -142,6 +142,13 @@ def getConnInfo():
 
     return host, control_port, data_port
 
+# borrowed from: http://stackoverflow.com/questions/1265665/python-check-if-a-string-represents-an-int-without-using-try-except
+def representsInt(s):
+    try:
+        int(s)
+        return True
+    except ValueError:
+        return False
 
 """
 Pre-Conditions: sys.argv length must be 5 or 6
@@ -157,11 +164,13 @@ def getCommand():
         portno = sys.argv[5]
     else:
         portno = sys.argv[4]
+    # uncomment these after done testing on server
     # check that command is correct syntax
-    if command != '-l' and command != '-g':
-        printUsage()
-    command = command + " " + filename + portno
-    print "DEBUG: command length: " + str(len(command))
+    #if command != '-l' and command != '-g':
+    #    printUsage()
+    #if not representsInt(portno):
+    #    printUsage()
+    command = command + " " + filename + " " + portno
     return command
 
 
@@ -189,7 +198,7 @@ if __name__ == "__main__":
     host, control_port, data_port = getConnInfo()
     sock = makeConnection(host, control_port)
     sendCommand(getCommand(), sock)
-    #receiveMessage(sock)
+    print receiveMessage(sock)
 
 
     print

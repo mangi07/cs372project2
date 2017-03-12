@@ -31,6 +31,7 @@ void *get_in_addr(struct sockaddr *sa)
 #include <arpa/inet.h>
 #include <sys/wait.h>
 #include <signal.h>
+#include <limits.h>
 
 #define BACKLOG 10	 // how many pending connections queue will hold
 #define HEADER_LEN 19
@@ -39,6 +40,9 @@ void handleRequest(int sockfd);
 char* recvLen(int len, int sockfd);
 char* receiveCommand( int sockfd );
 void sendMessage(char message[], int len, int sockfd);
+void parseCommand( char* command, int* get_file, char* file, char* port, int sockfd );
+char* prepareMessage( char* payload );
+
 
 /**********************************************************
 Pre-Conditions: portno is declared
@@ -221,18 +225,28 @@ This is because long long is estimated to be
 **data: The following data should be length bytes.
 */
 void handleRequest(int sockfd){
-	// TODO: receive port number and command for data connection
+	int action;
+	char file_path[PATH_MAX];
+	memset(file_path, 0, sizeof(file_path));
+	char port[100];
+	memset(port, 0, sizeof(port));
 	
 	char* command = receiveCommand( sockfd );
-	printf( "DEBUG in handleRequest: command = '%s'\n\n", command );
-	// TODO: parse string for command to get data port number and command
+	//printf( "DEBUG in handleRequest: command = '%s'\n\n", command );
 	
-	// sockfd = bindAndListen( PORT from command ); // TODO: uncomment and continue here to 
+	parseCommand( command, &action, file_path, port, sockfd ); // command syntax error --> send error msg and close connection
+	free(command);
+	//printf( "DEBUG in handleRequest...\naction: %d\nfile: %s\nport: %s\n", action, file_path, port ); 
+	
+	// close current connection
+	close(sockfd);
+	
 	// open a data connection on data port number
+	int datafd = bindAndListen( port );
 	
-	// if -l ..., else if -g <file> ...
 	// sendMessage(char message[], int len, int sockfd)
 	
+	close(datafd);
 	/* use some of this?
 	if (send(new_fd, "9223372036854775807ABC", 22, 0) == -1)
 				perror("send");
@@ -256,20 +270,134 @@ char* receiveCommand( int sockfd ){
 	string = recvLen(HEADER_LEN, sockfd);
 	bytes_expected = _charToLongLong(string);
 	printf( "DEBUG in receiveCommand: bytes_expeted = %lld\n\n", bytes_expected );
-	//free(string); // TODO: uncomment after testing
-	//string = NULL; // TODO: uncomment after testing
-	
-	
+	free(string); 
+	string = NULL;
 	
 	// receive the data
-    //string = recvLen(bytes_expected, sockfd); // TODO: uncomment after testing
+    string = recvLen(bytes_expected, sockfd); // TODO: test
+	printf( "DEBUG in receiveCommand: command = %lld\n\n", bytes_expected );
 	
 	return string;
 }
 
-// TODO: define function to carry out command here, making use of sendMessage below
+/*
+borrowed from: 
+http://stackoverflow.com/questions/4046616/sockets-how-to-find-out-what-port-and-address-im-assigned
+*/
+int getPortNo(int sock){
+	struct sockaddr_in sin;
+	socklen_t len = sizeof(sin);
+	if (getsockname(sock, (struct sockaddr *)&sin, &len) == -1)
+		perror("getsockname");
+	else
+		//printf("port number %d\n", ntohs(sin.sin_port));
+		return ntohs(sin.sin_port);
+	return -1;
+}
 
-// TODO: adapt the following two functions
+
+/*
+Arguments:
+command: the command to parse
+get_file: whether we should retrieve a file (if not, then list directory)
+  should be assigned either '-l' or '-g'
+file: file path string
+port: new port that we will connect on
+sockfd: current, control connection in case we need to send an error message
+
+command syntax error --> send error msg and close connection
+
+Sends message 
+*/
+void parseCommand( char* command, int* get_file, char* file, char* port, int sockfd ){
+	char action[3]; // should be either '-l' or '-g'
+	memset(action, 0, sizeof(action) );
+	*get_file = 0; // defaults to listing directory instead of getting a file
+	//printf( "DEBUG in parseCommand...\ncommand: %s\n", command );
+	// TODO: determine if flag is '-l' or '-g' and scan accordingly
+	sscanf( command, "%s %s %s", action, file, port );
+	printf( "DEBUG in parseCommand before assignment...\naction: %s\nfile: %s\nport: %s\n", action, file, port );
+	if (strcmp(action, "-l") == 0 || strcmp(port, "0") == 0 ){ // we may have only two arguments in command
+		port = file;
+		printf("DEBUG in parseCommand: port = %s\n\n", port);
+		file = NULL;
+	}
+	printf( "DEBUG in parseCommand after assignment...\naction: %s\nfile: %s\nport: %s\n", action, file, port );
+	
+	// check if port is already in use
+	int curr_port;
+	sscanf(port, "%d", &curr_port);
+	//printf("DEBUG in parseCommand, curr_port: %d\n\n", curr_port);
+	// TODO: test getPortNo here
+	printf("DEBUG in parseCommand, return value of getPortNo: %d\n\n", getPortNo(sockfd));
+	if ( (getPortNo(sockfd)) == curr_port) {
+		char* message = "                 40PORT ALREADY IN USE (CURRENT CONNECTION)";
+		sendMessage(message, 59, sockfd);
+		return;
+	}
+	//*get_file = ( strcmp(action, "-g") == 0 ) ? 1 : 0;
+	
+	printf( "DEBUG in parseCommand get_file (should be 1): %d\n", *get_file );
+	
+	// send the client a confirmation of the action to be taken based on its command
+	char intent[4092];
+	memset(intent, 0, 4092 );
+	
+	//int DEBUG_action = strcmp(action, "-g") == 0;
+	//printf( "DEBUG in parseCommand action (should be 1): %d\n", DEBUG_action );
+	if ( strcmp(action, "-g") == 0 ) {
+		*get_file = 1;
+		printf( "File \"%s\" requested on port %s.\n\n",  file, port );
+		sprintf( intent, "SENDING FILE \"%s\" on port %s...", file, port );
+	} else if ( strcmp(action, "-l") == 0 ) {
+		printf("DEBUG in parseCommand: server asked to list file directory with '-l'\n\n");
+		*get_file = 0;
+		printf( "List directory requested on port %s.\n\n", port );
+		sprintf( intent, "SENDING DIRECTORY LISTING ON PORT %s...", port );
+	} else {
+		char* message = "                 36INVALID FLAG (EXPECTED '-g' or '-l')";
+		sendMessage(message, 55, sockfd);
+		return;
+	}
+	
+	printf( "DEBUG: in parseCommand, intent: %s\n\n", intent );
+	char* message = prepareMessage( intent );
+	printf( "DEBUG: in parseCommand, message: %s\n\n", message );
+	int message_len = strlen(message);
+	sendMessage(message, message_len, sockfd);
+	free( message );
+}
+
+/*
+Arguments:
+payload: c-string of the data being sent
+
+Return:
+message ready to send to client,
+containing length followed by payload
+*/
+char* prepareMessage( char* payload ){
+	int payload_len = strlen(payload); // DEBUG should be 43
+	int message_len = HEADER_LEN + payload_len;
+	char* message = malloc( message_len + 1 );
+	memset( message, 0, message_len + 1 );
+	
+	char len_str[HEADER_LEN+1];
+	memset(len_str, 0, HEADER_LEN+1 );
+	sprintf(len_str, "%d", payload_len);
+	printf("DEBUG in prepareMessage, len_str: %s\n\n", len_str);
+	
+	int spaces = HEADER_LEN - strlen(len_str);
+	printf("DEBUG in prepareMessage, spaces: %d\n\n", spaces);
+	int i;
+	for( i = 0; i < spaces; ++i ){
+		strcat( message, " " );
+	}
+	
+	strcat( message, len_str );
+	strcat( message, payload );
+	return message;
+}
 
 /*
 Description: Receive len bytes into message c-string 
@@ -287,12 +415,14 @@ char* recvLen(int len, int sockfd)
 	//int chunk_size = 4096;
 	//int recv_len = (len<chunk_size)?len:chunk_size;
 	
+	printf( "1) message in recvLen: %s\n\n", message );
 	int total_bytes = 0;
 	int bytes_recv = recv(sockfd, message, len, 0);
 	int attempts = 0;
 	while ( attempts < 20 && total_bytes < len ) {
 		if ( bytes_recv == len ) {
-			printf( "%s\n", message );
+			total_bytes += bytes_recv;
+			printf( "2) message in recvLen: %s\n\n", message );
 			break;
 		} else if ( bytes_recv == -1 ) {
 			perror("recv");
@@ -309,6 +439,7 @@ char* recvLen(int len, int sockfd)
 			bytes_recv = recv(sockfd, &message[total_bytes], len - total_bytes, 0);
 		}
 	}
+	printf( "3) message in recvLen: %s\n\n", message );
 	/*
 	if (attempts >= 20){
 		close(sockfd);
@@ -316,7 +447,9 @@ char* recvLen(int len, int sockfd)
 		exit(0);
 	}
 	*/
+	printf( "3.1) total_bytes: %d\n\n", total_bytes );
 	message[total_bytes] = '\0';
+	printf( "4) message in recvLen: %s\n\n", message );
 	
 	return message;
 }
