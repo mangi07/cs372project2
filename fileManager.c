@@ -89,7 +89,6 @@ void _dirList (const char* path, struct path_node** n) {
 					_dirList( d_path, n ); // recall with the new path
 				} else { // we've reached a file name, so add entire path
 					*n = _addLink( n, d_path );
-					//printf("%s\n", d_path);
 				}
 			}
 		}
@@ -130,7 +129,6 @@ char* _listToChar( struct path_node* n ) {
 		}
 		i = i->next;
 	}
-	//printf( "len in _listToChar: %d", len );
 	
 	// make char* string of directory structure
 	char* dir_str = malloc( (len+1) * sizeof(char) );

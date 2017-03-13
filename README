@@ -34,7 +34,8 @@ $> python ftclient.py <hostname> <control portnumber> <command> <data portnumber
     
     **<command> will take either of these forms (without the quotes):
         
-    (1)    '-l' to list the server's working directory (recursive listing of all files therein) OR...
+    (1)    '-l' to list the server's working directory 
+            (recursive listing of all files therein) OR...
         
     (2)    '-g <filename>' to get <filename>
             Test files must be in the working directory to test this.
@@ -59,4 +60,18 @@ $> ftserver 3490
 python ftclient.py localhost 3490 -l 50004
 
 
+*****EXTRA CREDIT ??*****
+
+1. Multithreading
+    In connectionController.c:191..202, startup function 
+    uses fork() to accept multiple simultaneous clients.
+    (However, I did not test with more than one client at a time 
+    to verify if it really works.)
+
+2. Recursion and Recursive Directories, and Linked Lists
+    In managing directory listings, fileManager.c uses a linked list 
+    data structure to collect a list of file paths.  Recursion is
+    used to construct each file's path, allowing for recursive
+    listing of files in the working directory.  In other words,
+    the client can request files in subdirectories of the server.
 
