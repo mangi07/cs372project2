@@ -198,7 +198,6 @@ def getCommand():
 
     """Validate file does not exist in working directory"""
     f = filename[filename.rfind("/", 0)+1:]
-    print "DEBUG: {0}".format(f)
     if command == '-g' and os.path.exists(f):
         print "INPUT ERROR: filename exists in working directory."
         print "Stopping to prevent overwriting file \"{0}\"".format(f)
@@ -241,13 +240,16 @@ if __name__ == "__main__":
     # tell server we're ready to receive
     sendCommand("OK", data_sock)
     if flag == '-l':
-        print receiveMessage(data_sock)
+        print "Receiving directory listing from: {0}".format(portno)
+        print receiveMessage(data_sock)  # should contain directory listing from server
     elif flag == '-g':
         # check if file was successfully retreived on server
         success = receiveMessage(data_sock)
         if success == "OK":
-            print "Receiving \"{0}\" from :{1}".format(filename, portno)
-            print receiveMessage(data_sock)  # turn this into file write
+            print "Receiving \"{0}\" from: {1}".format(filename, portno)
+            f = filename[filename.rfind("/", 0) + 1:]
+            file_handle = open(f, 'w')
+            file_handle.write(receiveMessage(data_sock))
         else:
             print receiveMessage(data_sock)
     # send confirmation to server, "OK" to close connection on server
@@ -255,9 +257,9 @@ if __name__ == "__main__":
 
     data_sock.close()
 
-    # TODO: test with "python ftclient.py localhost 3490 -g testdir/testfile.txt 50004"
-    # TODO: test with "python ftclient.py localhost 3490 -g testdir/bible.txt 50004"
-    # TODO: test with "python ftclient.py localhost 3490 -l 50004"
+    # test with "python ftclient.py localhost 3490 -g testdir/testfile.txt 50004" - pass, now implement file write
+    # test with "python ftclient.py localhost 3490 -g testdir/bible.txt 50004" - pass, now implement file write
+    # test with "python ftclient.py localhost 3490 -l 50004" ***ERROR - check logic on this one
     # TODO: test these on server
     # TODO: commit
     # TODO: replace debug statements with useful status updates

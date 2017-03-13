@@ -9,7 +9,7 @@
 
 # main program
 default: ftserver.c connectionController.o fileManager.o
-	gcc -Wall -g -o ftserver ftserver.c
+	gcc -Wall -g -o ftserver ftserver.c connectionController.o fileManager.o
     
 tests: connectionController.o connectionControllerTests.c fileManager.o
 	gcc -Wall -g -o connectionControllerTests connectionControllerTests.c connectionController.o fileManager.o
