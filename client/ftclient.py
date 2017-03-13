@@ -232,7 +232,7 @@ if __name__ == "__main__":
     host, control_port, data_port = getConnInfo()
     sock = makeConnection(host, control_port)
     sendCommand(command, sock)
-    print receiveMessage(sock)
+    print "SERVER says: " + receiveMessage(sock)
     sock.close()
 
     # data connection
@@ -251,7 +251,7 @@ if __name__ == "__main__":
             file_handle = open(f, 'w')
             file_handle.write(receiveMessage(data_sock))
         else:
-            print receiveMessage(data_sock)
+            print "SERVER says: " + receiveMessage(data_sock)
     # send confirmation to server, "OK" to close connection on server
     sendCommand("OK", data_sock)
 
@@ -259,10 +259,7 @@ if __name__ == "__main__":
 
     # test with "python ftclient.py localhost 3490 -g testdir/testfile.txt 50004" - pass, now implement file write
     # test with "python ftclient.py localhost 3490 -g testdir/bible.txt 50004" - pass, now implement file write
-    # test with "python ftclient.py localhost 3490 -l 50004" ***ERROR - check logic on this one
-    # TODO: test these on server
-    # TODO: commit
-    # TODO: replace debug statements with useful status updates
-    # TODO: replace hard-coded server port with command line input to get port number for server startup
+    # test with "python ftclient.py localhost 3490 -l 50004"
+
     print
     print "Connection closed."

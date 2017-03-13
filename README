@@ -1,0 +1,62 @@
+
+File: README
+Author: Ben Olson
+Date: 3-8-17
+Course: OSU Networking
+Project 2
+
+
+
+Please run the makefile provided.
+$> make
+
+This program was tested on flip.engr.oregonstate.edu
+Please use this server to run/test the program.
+
+
+
+****INSTRUCTIONS FOR RUNNING*****
+
+(1) Start up the server to listen on <port number>:
+
+$> ftserver <port number>
+
+    **Note that <port number> may not be 30021 or 30020
+    and must be in range 1024 to 65535.  Usage messages
+    will be displayed if this is not followed.
+
+(2) Start the client:
+
+$> python ftclient.py <hostname> <control portnumber> <command> <data portnumber>
+
+    **Note that you can get a more detailed usage message by running the script
+    with no arguments.
+    
+    **<command> will take either of these forms (without the quotes):
+        
+    (1)    '-l' to list the server's working directory (recursive listing of all files therein) OR...
+        
+    (2)    '-g <filename>' to get <filename>
+            Test files must be in the working directory to test this.
+            
+            
+*****EXAMPLES*****
+
+Example 1:
+
+$> ftserver 3490
+$> python ftclient.py localhost 3490 -g testdir/testfile.txt 50004
+
+
+Example 2:
+
+$> ftserver 3490
+python ftclient.py localhost 3490 -g testdir/bible.txt 50004
+
+Example 3:
+
+$> ftserver 3490
+python ftclient.py localhost 3490 -l 50004
+
+
+
